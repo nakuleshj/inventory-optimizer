@@ -28,22 +28,24 @@ sales_data['ds']=pd.to_datetime(sales_data['ds'])
 sales_data.dropna(inplace=True)
 product_ids=sales_data['product_id'].unique()
 print(len(product_ids))
-new_sales_data=sales_data.copy()
-print('OG Count ',len(new_sales_data))
+forecasted_demand=pd.DataFrame()
+print('OG Count ',len(sales_data))
 count=0
 for pid in tqdm(product_ids):
     if len(sales_data[sales_data['product_id']==pid]) >=2:
         count=count+1
         forecasted_values=pd.DataFrame(forecaster(sales_data[sales_data['product_id']==pid]))
         forecasted_values['product_id']=pid
-        new_sales_data=pd.concat([new_sales_data,forecasted_values])
+        forecasted_demand=pd.concat([forecasted_demand,forecasted_values])
 
 print(count)
-print("Count should be: ",len(sales_data)+count*60)
-print('New Count ',len(new_sales_data))
-if(len(new_sales_data)==len(sales_data)+count*60):
-    new_sales_data.to_sql(
-        'sales_w_forecasts',conn,if_exists='replace',index=False
+print("Count should be: ",count*60)
+print('New Count ',len(forecasted_demand))
+
+def store_forecasts(forecasts):
+    conn=sqlite3.connect('../database/inventory.db')
+    forecasts.to_sql(
+        'forecasts',conn,if_exists='replace',index=False
     )
-else:
-    print("Count should be: ",len(sales_data)+count*60)
+    conn.close()
+
